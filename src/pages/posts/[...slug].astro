@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { withBasePath } from '../../lib/site-url';
 
 export async function getStaticPaths() {
   return (await getCollection('posts')).map((post) => ({
@@ -16,11 +17,12 @@ const { title, summary, image, imageAlt, publishedAt, tags, sourceUrl } = post.d
 const publishedDate = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'long',
 }).format(new Date(publishedAt));
+const imageUrl = withBasePath(image);
 ---
 
 <BaseLayout title={title} description={summary} image={image}>
   <article class="post-detail">
-    <img src={image} alt={imageAlt} />
+    <img src={imageUrl} alt={imageAlt} />
     <div class="post-detail-copy">
       <p class="post-card-date">{publishedDate}</p>
       <h1>{title}</h1>
