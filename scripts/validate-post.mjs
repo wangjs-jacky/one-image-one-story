@@ -6,7 +6,6 @@ import matter from 'gray-matter';
 import { imageSize } from 'image-size';
 import { validatePostFrontmatter } from '../src/lib/post-schema.ts';
 
-const repositoryRoot = process.cwd();
 const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/gu;
 
 const fail = (message) => {
@@ -61,7 +60,7 @@ export const classifyPostPaths = (postInput, imageInput) => {
   fail('--post and --image must be inside matching approved roots');
 };
 
-const assertRegularContainedFile = async (filePath, root, label) => {
+const assertRegularContainedFile = async (repositoryRoot, filePath, root, label) => {
   const absoluteFile = path.resolve(repositoryRoot, filePath);
   const absoluteRoot = path.resolve(repositoryRoot, root);
   let metadata;
@@ -88,15 +87,16 @@ const declaredImagePath = (kind, image) => path.normalize(path.join(pathRoots[ki
 
 const countChineseCharacters = (body) => (body.match(chineseCharacter) ?? []).length;
 
-const allPostFiles = async (kind) => {
+const allPostFiles = async (kind, repositoryRoot) => {
   const { glob } = await import('node:fs/promises');
   const files = [];
   const directory = pathRoots[kind].posts;
-  for await (const file of glob(path.join(directory, '**', '*.{md,mdx}'))) files.push(path.normalize(file));
+  for await (const file of glob(path.join(directory, '**', '*.{md,mdx}'), { cwd: repositoryRoot })) files.push(path.normalize(file));
   return files;
 };
 
-export const validatePost = async ({ postPath: postInput, imagePath: imageInput }) => {
+export const validatePost = async ({ postPath: postInput, imagePath: imageInput }, { repositoryRoot = process.cwd() } = {}) => {
+  const resolvedRepositoryRoot = path.resolve(repositoryRoot);
   const postPath = relativePath(postInput, '--post');
   const imagePath = relativePath(imageInput, '--image');
   const kind = classifyPostPaths(postPath, imagePath);
@@ -104,8 +104,8 @@ export const validatePost = async ({ postPath: postInput, imagePath: imageInput 
   if (path.extname(postPath).toLowerCase() !== '.md') fail('--post must name a Markdown (.md) file');
   if (path.extname(imagePath).toLowerCase() !== '.png') fail('--image must name a PNG file');
 
-  const postFile = await assertRegularContainedFile(postPath, pathRoots[kind].posts, 'Post');
-  const imageFile = await assertRegularContainedFile(imagePath, pathRoots[kind].images, 'Image');
+  const postFile = await assertRegularContainedFile(resolvedRepositoryRoot, postPath, pathRoots[kind].posts, 'Post');
+  const imageFile = await assertRegularContainedFile(resolvedRepositoryRoot, imagePath, pathRoots[kind].images, 'Image');
   let markdown;
   try {
     markdown = await readFile(postFile, 'utf8');
@@ -154,10 +154,10 @@ export const validatePost = async ({ postPath: postInput, imagePath: imageInput 
     fail(`Image must be a 1600×2000 PNG; found ${dimensions.width ?? '?'}×${dimensions.height ?? '?'} ${dimensions.type ?? 'unknown'}`);
   }
 
-  const siblings = await allPostFiles(kind);
+  const siblings = await allPostFiles(kind, resolvedRepositoryRoot);
   for (const siblingPath of siblings) {
     if (siblingPath === postPath) continue;
-    const sibling = matter(await readFile(path.join(repositoryRoot, siblingPath), 'utf8'));
+    const sibling = matter(await readFile(path.join(resolvedRepositoryRoot, siblingPath), 'utf8'));
     if (sibling.data.slug === frontmatter.slug) fail(`Duplicate slug: ${frontmatter.slug} also exists in ${siblingPath}`);
   }
 

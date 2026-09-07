@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, rename, rm, rmdir, symlink } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -17,31 +17,27 @@ describe('publication paths', () => {
 
   it('rejects an approved post root symlinked outside the repository', async () => {
     const repository = process.cwd();
-    const postRoot = path.join(repository, 'src/content/posts');
-    const imageRoot = path.join(repository, 'public/images/posts');
-    const external = await mkdtemp(path.join(tmpdir(), 'publisher-root-escape-'));
-    const movedPostRoot = path.join(external, 'posts');
+    const isolatedRepository = await mkdtemp(path.join(tmpdir(), 'publisher-isolated-repository-'));
+    const externalRoot = await mkdtemp(path.join(tmpdir(), 'publisher-root-escape-'));
+    const postRoot = path.join(isolatedRepository, 'src/content/posts');
+    const imageRoot = path.join(isolatedRepository, 'public/images/posts');
 
-    await rename(postRoot, movedPostRoot);
-    await symlink(movedPostRoot, postRoot, 'dir');
-    await copyFile(path.join(repository, 'tests/fixtures/posts/sample.md'), path.join(movedPostRoot, 'sample.md'));
+    await mkdir(path.dirname(postRoot), { recursive: true });
     await mkdir(imageRoot, { recursive: true });
+    await copyFile(path.join(repository, 'tests/fixtures/posts/sample.md'), path.join(externalRoot, 'sample.md'));
+    await symlink(externalRoot, postRoot, 'dir');
     await copyFile(path.join(repository, 'tests/fixtures/public/images/posts/sample.png'), path.join(imageRoot, 'sample.png'));
+    const imageBefore = await readFile(path.join(imageRoot, 'sample.png'));
 
     try {
       await expect(validatePost({
         postPath: 'src/content/posts/sample.md',
         imagePath: 'public/images/posts/sample.png',
-      })).rejects.toThrow('Approved root resolves outside the repository');
+      }, { repositoryRoot: isolatedRepository })).rejects.toThrow('Approved root resolves outside the repository');
+      expect(await readFile(path.join(imageRoot, 'sample.png'))).toEqual(imageBefore);
     } finally {
-      await rm(path.join(movedPostRoot, 'sample.md'), { force: true });
-      await rm(postRoot, { force: true });
-      await rename(movedPostRoot, postRoot);
-      await rm(path.join(imageRoot, 'sample.png'), { force: true });
-      await rmdir(imageRoot);
-      await rmdir(path.dirname(imageRoot));
-      await rmdir(path.dirname(path.dirname(imageRoot)));
-      await rm(external, { recursive: true, force: true });
+      await rm(isolatedRepository, { recursive: true, force: true });
+      await rm(externalRoot, { recursive: true, force: true });
     }
   });
 });
