@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 
 describe('static output', () => {
   it('renders gallery and permanent route metadata', async () => {
-    const home = await readFile('dist/index.html', 'utf8');
-    const post = await readFile('dist/posts/sample/index.html', 'utf8');
-    const basePath = (process.env.BASE_PATH ?? '/').replace(/\/$/, '');
+    const home = await readFile('.fixture-build/dist/index.html', 'utf8');
+    const post = await readFile('.fixture-build/dist/posts/sample/index.html', 'utf8');
+    // Inspect the fixture build's base, even after a differently configured production build.
+    const canonical = home.match(/<link rel="canonical" href="([^"]+)"/);
+    expect(canonical).not.toBeNull();
+    const basePath = new URL(canonical[1]).pathname.replace(/\/$/, '');
     const imagePath = `${basePath}/images/posts/sample.png`;
 
     expect(home).toContain('data-post-card');
@@ -21,6 +24,6 @@ describe('static output', () => {
 
   it('ships the fixture image used by the generated pages', async () => {
     await access('tests/fixtures/public/images/posts/sample.png');
-    await access('dist/images/posts/sample.png');
+    await access('.fixture-build/dist/images/posts/sample.png');
   });
 });
