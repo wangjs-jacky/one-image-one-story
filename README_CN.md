@@ -72,7 +72,7 @@ npm run publish:post -- --post src/content/posts/example-story.md --image public
 gh api repos/{owner}/{repo}/pages --jq .html_url
 ```
 
-线上首页：等待首次部署核验后填写。作品地址为 `<首页网址>posts/<slug>/`。
+线上首页：[wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/)。作品地址为 `<首页网址>posts/<slug>/`。
 
 如果本地提交成功但推送失败，保留该提交，排查原因后重试 `git push origin HEAD:main`，不要重复生成文章或强制推送。用 `git rev-parse HEAD` 取得原提交，将下方 `COMMIT_SHA` 替换为实际值：
 

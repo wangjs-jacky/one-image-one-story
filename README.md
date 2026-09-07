@@ -64,7 +64,7 @@ The workflow file is [deploy-pages.yml](.github/workflows/deploy-pages.yml). Pag
 gh api repos/{owner}/{repo}/pages --jq .html_url
 ```
 
-Live site: pending initial verified deployment. Story routes are `<site URL>posts/<slug>/`.
+Live site: [wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/). Story routes are `<site URL>posts/<slug>/`.
 
 If a push fails after a commit, retain the commit and retry `git push origin HEAD:main` after resolving the cause; do not regenerate the story or force push. Inspect the existing commit with `git rev-parse HEAD`. Find its deployment by replacing `COMMIT_SHA` below with that value:
 
