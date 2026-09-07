@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "check": "POSTS_DIR=./tests/fixtures/posts BASE_PATH=/ astro build && astro check && vitest run",
+    "check": "node scripts/check-fixture.mjs",
     "test": "vitest",
     "validate:post": "node scripts/validate-post.mjs",
     "publish:post": "node scripts/publish-post.mjs"

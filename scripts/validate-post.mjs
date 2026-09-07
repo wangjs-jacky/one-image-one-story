@@ -72,7 +72,14 @@ const assertRegularContainedFile = async (filePath, root, label) => {
   }
   if (!metadata.isFile() || metadata.isSymbolicLink()) fail(`${label} must be a regular non-symlink file: ${filePath}`);
 
-  const [canonicalFile, canonicalRoot] = await Promise.all([realpath(absoluteFile), realpath(absoluteRoot)]);
+  const [canonicalFile, canonicalRoot, canonicalRepositoryRoot] = await Promise.all([
+    realpath(absoluteFile),
+    realpath(absoluteRoot),
+    realpath(repositoryRoot),
+  ]);
+  if (!isContainedBy(canonicalRoot, canonicalRepositoryRoot)) {
+    fail(`Approved root resolves outside the repository: ${root}`);
+  }
   if (!isContainedBy(canonicalFile, canonicalRoot)) fail(`${label} resolves outside its approved root: ${filePath}`);
   return absoluteFile;
 };
