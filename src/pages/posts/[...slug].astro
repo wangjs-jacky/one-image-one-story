@@ -1,0 +1,42 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  return (await getCollection('posts')).map((post) => ({
+    params: { slug: post.data.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props as { post: CollectionEntry<'posts'> };
+const { Content } = await render(post);
+const { title, summary, image, imageAlt, publishedAt, tags, sourceUrl } = post.data;
+const publishedDate = new Intl.DateTimeFormat('zh-CN', {
+  dateStyle: 'long',
+}).format(new Date(publishedAt));
+---
+
+<BaseLayout title={title} description={summary} image={image}>
+  <article class="post-detail">
+    <img src={image} alt={imageAlt} />
+    <div class="post-detail-copy">
+      <p class="post-card-date">{publishedDate}</p>
+      <h1>{title}</h1>
+      <div class="post-body"><Content /></div>
+      {sourceUrl && <p><a href={sourceUrl} rel="noreferrer">查看原始链接</a></p>}
+      <ul class="tag-list" aria-label="标签">
+        {tags.map((tag) => <li>{tag}</li>)}
+      </ul>
+      <button type="button" data-copy-link>复制永久链接</button>
+    </div>
+  </article>
+</BaseLayout>
+
+<script>
+  document.querySelector('[data-copy-link]')?.addEventListener('click', async (event) => {
+    await navigator.clipboard.writeText(location.href);
+    (event.currentTarget as HTMLButtonElement).textContent = '已复制';
+  });
+</script>

@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+
+const posts = (await getCollection('posts')).sort(
+  (left, right) => Date.parse(right.data.publishedAt) - Date.parse(left.data.publishedAt),
+);
+---
+
+<BaseLayout title="一图一文" description="一张图，一个值得留存的故事。">
+  <section class="intro" aria-labelledby="site-title">
+    <p>IMAGE / STORY</p>
+    <h1 id="site-title">一图一文</h1>
+    <p>一张图，一个值得留存的故事。</p>
+  </section>
+  <section class="masonry" aria-label="文章画廊">
+    {posts.map((post) => <PostCard post={post} />)}
+  </section>
+</BaseLayout>

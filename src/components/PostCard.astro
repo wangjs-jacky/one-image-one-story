@@ -1,0 +1,24 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+const { post } = Astro.props as { post: CollectionEntry<'posts'> };
+const { title, slug, summary, image, imageAlt, publishedAt, tags } = post.data;
+const publishedDate = new Intl.DateTimeFormat('zh-CN', {
+  dateStyle: 'long',
+}).format(new Date(publishedAt));
+const postUrl = `${import.meta.env.BASE_URL}posts/${slug}/`;
+---
+
+<article class="post-card" data-post-card>
+  <a href={postUrl} aria-label={`阅读：${title}`}>
+    <img class="post-card-image" src={image} alt={imageAlt} loading="lazy" />
+  </a>
+  <div class="post-card-copy">
+    <p class="post-card-date">{publishedDate}</p>
+    <h2><a href={postUrl}>{title}</a></h2>
+    <p>{summary}</p>
+    <ul class="tag-list" aria-label="标签">
+      {tags.map((tag) => <li>{tag}</li>)}
+    </ul>
+  </div>
+</article>

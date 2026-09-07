@@ -1,0 +1,31 @@
+---
+import '../styles/global.css';
+
+const {
+  title,
+  description,
+  image,
+  canonical = new URL(Astro.url.pathname, Astro.site),
+} = Astro.props;
+const imageUrl = image
+  ? new URL(`${import.meta.env.BASE_URL}${image.slice(1)}`, Astro.site)
+  : undefined;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
+  </head>
+  <body>
+    <header><a href={import.meta.env.BASE_URL}>一图一文</a></header>
+    <main><slot /></main>
+  </body>
+</html>
