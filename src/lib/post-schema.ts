@@ -9,7 +9,9 @@ export const postFrontmatterSchema = z.object({
   imageAlt: z.string().min(1).max(160),
   tags: z.array(z.string().min(1)).min(1).max(8),
   sourceType: z.enum(['topic', 'text', 'url']),
-  sourceUrl: z.string().url().nullable(),
+  sourceUrl: z.string().url().refine((value) => /^https?:\/\//i.test(value), {
+    message: 'sourceUrl must use http:// or https://',
+  }).nullable(),
   status: z.literal('published'),
 }).superRefine((value, context) => {
   if (value.sourceType === 'url' && value.sourceUrl === null) {

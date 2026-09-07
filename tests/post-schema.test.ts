@@ -22,4 +22,22 @@ describe('validatePostFrontmatter', () => {
   it('requires sourceUrl for URL input', () => {
     expect(() => validatePostFrontmatter({ ...valid, sourceUrl: null })).toThrow();
   });
+
+  it.each(['https://example.test/articles/story?ref=gallery&lang=zh', 'http://example.test/story', 'HTTPS://example.test/story'])(
+    'accepts HTTP source attribution %s', (sourceUrl) => {
+      expect(validatePostFrontmatter({ ...valid, sourceUrl }).sourceUrl).toBe(sourceUrl);
+    },
+  );
+
+  it.each(['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'file:///tmp/story.md', 'ftp://example.test/story', 'mailto:editor@example.test'])(
+    'rejects unsafe source attribution %s for every input mode', (sourceUrl) => {
+      for (const sourceType of ['url', 'text', 'topic']) {
+        expect(() => validatePostFrontmatter({ ...valid, sourceType, sourceUrl })).toThrow(/sourceUrl must use http:\/\/ or https:\/\//);
+      }
+    },
+  );
+
+  it.each(['topic', 'text'])('allows %s input without source attribution', (sourceType) => {
+    expect(validatePostFrontmatter({ ...valid, sourceType, sourceUrl: null }).sourceUrl).toBeNull();
+  });
 });

@@ -20,7 +20,7 @@ const publishedDate = new Intl.DateTimeFormat('zh-CN', {
 const imageUrl = withBasePath(image);
 ---
 
-<BaseLayout title={title} description={summary} image={image}>
+<BaseLayout title={title} description={summary} image={image} imageAlt={imageAlt} type="article">
   <article class="post-detail">
     <img src={imageUrl} alt={imageAlt} />
     <div class="post-detail-copy">
@@ -31,14 +31,21 @@ const imageUrl = withBasePath(image);
       <ul class="tag-list" aria-label="标签">
         {tags.map((tag) => <li>{tag}</li>)}
       </ul>
-      <button type="button" data-copy-link>复制永久链接</button>
+      <button type="button" data-copy-link data-copy-state="idle" aria-live="polite">复制永久链接</button>
     </div>
   </article>
 </BaseLayout>
 
 <script>
   document.querySelector('[data-copy-link]')?.addEventListener('click', async (event) => {
-    await navigator.clipboard.writeText(location.href);
-    (event.currentTarget as HTMLButtonElement).textContent = '已复制';
+    const button = event.currentTarget as HTMLButtonElement;
+    try {
+      await navigator.clipboard.writeText(location.href);
+      button.textContent = '已复制';
+      button.dataset.copyState = 'success';
+    } catch {
+      button.textContent = '复制失败，请重试';
+      button.dataset.copyState = 'error';
+    }
   });
 </script>

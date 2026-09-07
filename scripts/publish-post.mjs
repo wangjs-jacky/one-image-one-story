@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import process from 'node:process';
 import { expectedPaths, porcelainStatusLines, unexpectedChanges } from './post-files.mjs';
 import { runPublicationChecks } from './publish-checks.mjs';
+import { assertPublicationHead, establishPublicationBaseline, pushPublicationCommit } from './publish-git.mjs';
 import { pagesRunArgs, selectPagesRun } from './pages-workflow.mjs';
 import { validatePost } from './validate-post.mjs';
 
@@ -100,15 +101,17 @@ const publish = async () => {
     return;
   }
 
+  const baseline = establishPublicationBaseline();
   run('git', ['add', '--', validated.postPath, validated.imagePath]);
   const staged = stagedPaths();
   if (staged.length !== 2 || staged.some((file) => !allowed.has(file))) {
     fail(`Staging must contain exactly the requested Markdown and PNG pair; found ${staged.join(', ') || 'nothing'}`);
   }
 
+  assertPublicationHead(baseline);
   run('git', ['commit', '-m', options.message]);
   const commit = commitSha();
-  run('git', ['push', 'origin', 'HEAD:main']);
+  pushPublicationCommit(baseline, commit, allowed);
   await waitForPagesRun(commit);
   process.stdout.write(`${JSON.stringify({ commit, ...siteUrls(validated.slug) })}\n`);
 };

@@ -8,8 +8,8 @@ imageAlt: 一张用于测试的暖色调样例图片
 tags:
   - 样例
   - 测试
-sourceType: topic
-sourceUrl: null
+sourceType: url
+sourceUrl: https://example.test/articles/sample?ref=gallery&lang=zh
 status: published
 ---
 

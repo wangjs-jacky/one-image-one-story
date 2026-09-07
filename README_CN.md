@@ -50,7 +50,7 @@ status: published
 ---
 ```
 
-标题 1–80 字符，摘要 1–120 字符，替代文本 1–160 字符，标签为 1–8 个非空字符串。`slug` 全局唯一，只允许小写英文、数字及分隔用的短横线。时间必须是带时区且加引号的 ISO 字符串。`sourceType` 为 `topic`、`text` 或 `url`；URL 模式必须提供合法 `sourceUrl`。`status` 固定为 `published`。图片引用必须与实际传入路径一致，格式和尺寸必须为 PNG、1600×2000。以 [schema](src/lib/post-schema.ts) 和 [文件校验器](scripts/validate-post.mjs) 为准。
+frontmatter 只接受 YAML，开头为 `---`、`---yaml` 或 `---yml`；当前文章和同目录文章中的可执行语言、自定义语言都会被拒绝。标题 1–80 字符，摘要 1–120 字符，替代文本 1–160 字符，标签为 1–8 个非空字符串。`slug` 全局唯一，只允许小写英文、数字及分隔用的短横线。时间必须是带时区且加引号的 ISO 字符串。`sourceType` 为 `topic`、`text` 或 `url`；URL 模式必须提供合法 `sourceUrl`，所有非空来源链接只允许 HTTP 或 HTTPS。`status` 固定为 `published`。图片引用必须与实际传入路径一致，格式和尺寸必须为 PNG、1600×2000。以 [schema](src/lib/post-schema.ts) 和 [文件校验器](scripts/validate-post.mjs) 为准。
 
 ## 自动发布与停止条件
 
@@ -60,7 +60,7 @@ npm run publish:post -- --post src/content/posts/example-story.md --image public
 npm run publish:post -- --post src/content/posts/example-story.md --image public/images/posts/example-story.png --message "content: publish example story"
 ```
 
-`--dry-run` 执行校验和构建检查，不暂存、提交或推送。正式发布只接受生产目录中的文件对；执行内容校验、测试和强制生产构建后，拒绝无关工作区修改，只暂存这两个文件，创建提交并推送 `HEAD:main`。随后按工作流文件名 `deploy-pages.yml`、提交 SHA、`main` 分支和 `push` 事件精确等待本次部署，返回提交、首页和作品链接。
+`--dry-run` 执行校验和构建检查，不连接远端，也不暂存、提交或推送。正式发布只接受生产目录中的文件对；执行内容校验、测试和强制生产构建后，拒绝无关工作区修改。暂存前读取 `origin` 唯一推送目标的 `main`，要求本地 `HEAD` 与该提交完全一致；代码发布及未同步历史必须另行处理。随后只暂存这两个文件，创建提交并核对提交文件和唯一父提交，使用固定新 SHA 与要求原远端基线不变的显式 lease 推送。远端前进或回退都会拒绝推送并保留本地提交。之后按工作流文件名 `deploy-pages.yml`、新提交 SHA、`main` 分支和 `push` 事件精确等待部署，返回提交、首页和作品链接。
 
 写入内容前必须检查来源和隐私。遇到密钥、私人对话、内部文档、个人身份信息、未授权素材、无法获取的来源或不足以支撑观点的证据时停止。图片失败或不合格、schema 不合法、slug 重复、测试或构建失败、存在无关修改时，也必须停止。脚本中的敏感值模式匹配只是补充防线，不能替代隐私判断和图片目视检查。发布脚本不单独请求返回的网址，报告上线前仍须检查 HTTP 成功响应。
 
@@ -74,7 +74,7 @@ gh api repos/{owner}/{repo}/pages --jq .html_url
 
 线上首页：[wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/)。作品地址为 `<首页网址>posts/<slug>/`。
 
-如果本地提交成功但推送失败，保留该提交，排查原因后重试 `git push origin HEAD:main`，不要重复生成文章或强制推送。用 `git rev-parse HEAD` 取得原提交，将下方 `COMMIT_SHA` 替换为实际值：
+如果本地提交成功但推送失败，保留脚本报告的 SHA，对照当前远端 `main` 检查提交历史，单独处理权限或历史同步。不要重复生成文章、在存在未推送提交时重跑内容发布，也不要强制推送。确认全部待推送历史符合预期后，才通过 `git push origin COMMIT_SHA:main` 推送已审核的固定提交。将下方 `COMMIT_SHA` 替换为实际值查询部署：
 
 ```bash
 gh run list --workflow deploy-pages.yml --commit COMMIT_SHA --branch main --event push

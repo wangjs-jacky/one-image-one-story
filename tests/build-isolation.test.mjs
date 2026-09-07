@@ -38,6 +38,9 @@ describe('build isolation', () => {
       const productionHome = await readFile(path.join(isolated, 'dist/index.html'), 'utf8');
       expect(productionHome).toContain('<h1 id="site-title">一图一文</h1>');
       expect(productionHome).toContain('href="https://example.test/build-isolation/"');
+      expect(productionHome).toContain('<meta property="og:type" content="website">');
+      expect(productionHome).toContain('<meta property="og:url" content="https://example.test/build-isolation/">');
+      expect(productionHome).toContain('<meta name="twitter:card" content="summary">');
       expect(productionHome).not.toContain('data-post-card');
       expect(productionHome).not.toContain('/posts/sample/');
       expect(productionHome).not.toContain('/images/posts/sample.png');
@@ -49,8 +52,14 @@ describe('build isolation', () => {
       expect(fixtureHome).toContain('data-post-card');
       expect(fixtureHome).toContain('href="/build-isolation/posts/sample/"');
       expect(fixturePost).toContain('src="/build-isolation/images/posts/sample.png"');
-      expect(fixturePost).toContain('href="https://example.test/build-isolation/posts/sample/"');
-      expect(fixturePost).toContain('property="og:image"');
+      expect(fixtureHome).toContain('<link rel="canonical" href="https://example.test/build-isolation/">');
+      expect(fixtureHome).toContain('<meta property="og:url" content="https://example.test/build-isolation/">');
+      expect(fixturePost).toContain('<link rel="canonical" href="https://example.test/build-isolation/posts/sample/">');
+      expect(fixturePost).toContain('<meta property="og:type" content="article">');
+      expect(fixturePost).toContain('<meta property="og:url" content="https://example.test/build-isolation/posts/sample/">');
+      expect(fixturePost).toContain('<meta property="og:image" content="https://example.test/build-isolation/images/posts/sample.png">');
+      expect(fixturePost).toContain('<meta name="twitter:card" content="summary_large_image">');
+      expect(fixturePost).toContain('<meta name="twitter:image" content="https://example.test/build-isolation/images/posts/sample.png">');
       expect(fixturePost).toContain('data-copy-link');
       expect(await readFile(path.join(isolated, '.fixture-build/dist/images/posts/sample.png')))
         .toEqual(await readFile(path.join(isolated, 'tests/fixtures/public/images/posts/sample.png')));

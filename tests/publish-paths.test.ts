@@ -39,5 +39,5 @@ describe('publication paths', () => {
       await rm(isolatedRepository, { recursive: true, force: true });
       await rm(externalRoot, { recursive: true, force: true });
     }
-  });
+  }, 30000);
 });

@@ -4,7 +4,7 @@
 
 An Astro gallery for one pure visual image and one independent short story. Markdown and PNG files are the publication source; GitHub Actions builds permanent, shareable pages on every push to `main`.
 
-The responsive gallery includes individual story pages, source attribution, copy-link controls, and Open Graph metadata. An empty content collection is a supported starting state. The reusable generation Skill and initial stories are described in the implementation plan and will follow the site foundation.
+The responsive gallery includes individual story pages, source attribution, copy-link controls, and Open Graph and Twitter Card metadata. An empty content collection is a supported starting state. The reusable generation Skill and initial stories are described in the implementation plan and will follow the site foundation.
 
 ## Development
 
@@ -44,7 +44,7 @@ status: published
 ---
 ```
 
-The body follows the frontmatter. Titles allow 1–80 characters, summaries 1–120, alt text 1–160, and tags 1–8 nonempty strings. Slugs use lowercase letters, digits, and single hyphen separators and must be unique. `publishedAt` is a quoted ISO timestamp with timezone. `sourceType` is `topic`, `text`, or `url`; URL input requires a valid `sourceUrl`. The declared image must match the supplied PNG exactly. [Schema source](src/lib/post-schema.ts) and [file validator](scripts/validate-post.mjs) define the executable contract.
+The body follows YAML-only frontmatter, opened with `---`, `---yaml`, or `---yml`; executable and custom frontmatter languages are rejected in both the requested post and sibling files. Titles allow 1–80 characters, summaries 1–120, alt text 1–160, and tags 1–8 nonempty strings. Slugs use lowercase letters, digits, and single hyphen separators and must be unique. `publishedAt` is a quoted ISO timestamp with timezone. `sourceType` is `topic`, `text`, or `url`; URL input requires a valid `sourceUrl`, and any non-null source URL must use HTTP or HTTPS. The declared image must match the supplied PNG exactly. [Schema source](src/lib/post-schema.ts) and [file validator](scripts/validate-post.mjs) define the executable contract.
 
 ```bash
 npm run validate:post -- --post src/content/posts/example-story.md --image public/images/posts/example-story.png
@@ -52,7 +52,7 @@ npm run publish:post -- --post src/content/posts/example-story.md --image public
 npm run publish:post -- --post src/content/posts/example-story.md --image public/images/posts/example-story.png --message "content: publish example story"
 ```
 
-Live publication validates the pair, runs checks and a forced production build, rejects unrelated worktree changes, stages exactly the requested two files, commits, and pushes `HEAD:main`. It waits for the exact `deploy-pages.yml` push run on `main` with that commit SHA, then prints the commit, homepage URL, and permanent post URL. `--dry-run` runs validation and checks without staging, committing, or pushing.
+Live publication validates the pair, runs checks and a forced production build, and rejects unrelated worktree changes. Before staging, it reads `main` from the single configured `origin` push destination and requires local `HEAD` to equal that exact commit. Publish repository code and reconcile incoming or outgoing history separately before publishing content. The publisher stages exactly the requested pair, commits, verifies the committed paths and sole parent, then pushes that exact new SHA with an explicit lease requiring the original remote baseline. A remote advance or rollback rejects the push and preserves the local commit. It waits for the exact `deploy-pages.yml` push run on `main` with the new SHA, then prints the commit, homepage URL, and permanent post URL. `--dry-run` runs validation and checks without contacting the remote, staging, committing, or pushing.
 
 Before writing content, stop on secrets, private conversations, internal documents, personal information, unauthorized material, or missing source evidence. Also stop on unsuitable images, invalid schema, failed tests/build, duplicate slugs, or unrelated modifications. Automated secret-pattern checks are a partial backstop; source/privacy and visual inspection remain required. The publisher does not independently fetch the returned URLs; confirm successful HTTP responses before reporting a live page.
 
@@ -66,7 +66,7 @@ gh api repos/{owner}/{repo}/pages --jq .html_url
 
 Live site: [wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/). Story routes are `<site URL>posts/<slug>/`.
 
-If a push fails after a commit, retain the commit and retry `git push origin HEAD:main` after resolving the cause; do not regenerate the story or force push. Inspect the existing commit with `git rev-parse HEAD`. Find its deployment by replacing `COMMIT_SHA` below with that value:
+If a push fails after a commit, retain the SHA reported by the publisher and inspect it together with the current remote `main`. Resolve access problems or reconcile history as a separate recovery operation; do not regenerate the story, rerun content publication over outgoing commits, or force push. Only after reviewing the outgoing history should you push the intended SHA with `git push origin COMMIT_SHA:main`. Find its deployment by replacing `COMMIT_SHA` below with that value:
 
 ```bash
 gh run list --workflow deploy-pages.yml --commit COMMIT_SHA --branch main --event push

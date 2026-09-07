@@ -2,10 +2,21 @@
 import '../styles/global.css';
 import { withBasePath } from '../lib/site-url';
 
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  imageAlt?: string;
+  type?: 'website' | 'article';
+  canonical?: URL | string;
+}
+
 const {
   title,
   description,
   image,
+  imageAlt,
+  type = 'website',
   canonical = new URL(Astro.url.pathname, Astro.site),
 } = Astro.props;
 const imageUrl = image
@@ -21,9 +32,17 @@ const imageUrl = image
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {imageUrl && <meta property="og:image" content={imageUrl} />}
+    {imageUrl && imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+    <meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+    {imageUrl && imageAlt && <meta name="twitter:image:alt" content={imageAlt} />}
   </head>
   <body>
     <header><a href={import.meta.env.BASE_URL}>一图一文</a></header>

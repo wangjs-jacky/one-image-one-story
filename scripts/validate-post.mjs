@@ -2,9 +2,9 @@ import { lstat, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import matter from 'gray-matter';
 import { imageSize } from 'image-size';
 import { validatePostFrontmatter } from '../src/lib/post-schema.ts';
+import { parsePostMarkdown } from './post-frontmatter.mjs';
 
 const chineseCharacter = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/gu;
 
@@ -113,12 +113,7 @@ export const validatePost = async ({ postPath: postInput, imagePath: imageInput 
     fail(`Post file does not exist: ${postPath}`);
   }
 
-  let parsed;
-  try {
-    parsed = matter(markdown);
-  } catch (error) {
-    fail(`Post frontmatter is invalid YAML: ${error.message}`);
-  }
+  const parsed = parsePostMarkdown(markdown, postPath);
 
   let frontmatter;
   try {
@@ -157,7 +152,7 @@ export const validatePost = async ({ postPath: postInput, imagePath: imageInput 
   const siblings = await allPostFiles(kind, resolvedRepositoryRoot);
   for (const siblingPath of siblings) {
     if (siblingPath === postPath) continue;
-    const sibling = matter(await readFile(path.join(resolvedRepositoryRoot, siblingPath), 'utf8'));
+    const sibling = parsePostMarkdown(await readFile(path.join(resolvedRepositoryRoot, siblingPath), 'utf8'), siblingPath);
     if (sibling.data.slug === frontmatter.slug) fail(`Duplicate slug: ${frontmatter.slug} also exists in ${siblingPath}`);
   }
 
