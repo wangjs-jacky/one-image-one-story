@@ -1,7 +1,9 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import process from 'node:process';
-import { expectedPaths, unexpectedChanges } from './post-files.mjs';
+import { expectedPaths, porcelainStatusLines, unexpectedChanges } from './post-files.mjs';
+import { runPublicationChecks } from './publish-checks.mjs';
+import { pagesRunArgs, selectPagesRun } from './pages-workflow.mjs';
 import { validatePost } from './validate-post.mjs';
 
 const fail = (message) => {
@@ -46,24 +48,9 @@ const assertNoSensitiveInput = (values) => {
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-const porcelainPaths = () => {
-  const output = execFileSync('git', ['status', '--porcelain=v1', '-z'], { cwd: process.cwd() }).toString('utf8');
-  const records = output.split('\0');
-  const lines = [];
-
-  for (let index = 0; index < records.length - 1; index += 1) {
-    const record = records[index];
-    if (!record) continue;
-    const status = record.slice(0, 2);
-    const file = record.slice(3);
-    lines.push(`${status} ${file}`);
-    if ((status.includes('R') || status.includes('C')) && records[index + 1] !== undefined) {
-      index += 1;
-      lines.push(`${status} ${records[index]}`);
-    }
-  }
-  return lines;
-};
+const porcelainPaths = () => porcelainStatusLines(execFileSync('git', [
+  'status', '--porcelain=v1', '-z', '--untracked-files=all',
+], { cwd: process.cwd() }).toString('utf8'));
 
 const stagedPaths = () => execFileSync('git', ['diff', '--cached', '--name-only', '-z'], { cwd: process.cwd() })
   .toString('utf8')
@@ -81,11 +68,11 @@ const siteUrls = (slug) => {
 
 const waitForPagesRun = async (commit) => {
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const output = execFileSync('gh', ['run', 'list', '--commit', commit, '--json', 'databaseId,workflowName', '--limit', '100'], {
+    const output = execFileSync('gh', pagesRunArgs(commit), {
       cwd: process.cwd(),
       encoding: 'utf8',
     });
-    const pagesRun = JSON.parse(output).find((run) => /pages/i.test(run.workflowName));
+    const pagesRun = selectPagesRun(JSON.parse(output), commit);
     if (pagesRun) {
       run('gh', ['run', 'watch', String(pagesRun.databaseId), '--exit-status']);
       return;
@@ -100,10 +87,10 @@ const publish = async () => {
   assertNoSensitiveInput({ message: options.message, postPath: options.postPath, imagePath: options.imagePath });
   const validated = await validatePost(options);
   assertNoSensitiveInput({ postBody: await readFile(validated.postPath, 'utf8') });
+  if (!options.dryRun && validated.kind !== 'production') fail('Live publication requires production post and image paths');
   const allowed = expectedPaths(validated.postPath, validated.imagePath);
 
-  run('npm', ['run', 'build']);
-  run('npm', ['run', 'check']);
+  runPublicationChecks(run);
 
   const unexpected = unexpectedChanges(porcelainPaths(), allowed);
   if (unexpected.length) fail(`Unrelated worktree changes detected: ${unexpected.join(', ')}`);

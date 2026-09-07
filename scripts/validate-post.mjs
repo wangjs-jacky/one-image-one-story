@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { lstat, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -42,20 +42,49 @@ const relativePath = (input, label) => {
   return normalized;
 };
 
-const publicDirectoryFor = (postPath) => postPath.startsWith(`tests${path.sep}fixtures${path.sep}posts${path.sep}`)
-  ? path.join('tests', 'fixtures', 'public')
-  : 'public';
+const pathRoots = {
+  production: { posts: path.join('src', 'content', 'posts'), images: path.join('public', 'images', 'posts') },
+  fixture: { posts: path.join('tests', 'fixtures', 'posts'), images: path.join('tests', 'fixtures', 'public', 'images', 'posts') },
+};
 
-const declaredImagePath = (postPath, image) => path.normalize(path.join(publicDirectoryFor(postPath), image));
+const isContainedBy = (filePath, root) => {
+  const relative = path.relative(root, filePath);
+  return Boolean(relative) && !relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative);
+};
+
+export const classifyPostPaths = (postInput, imageInput) => {
+  const postPath = relativePath(postInput, '--post');
+  const imagePath = relativePath(imageInput, '--image');
+  for (const [kind, roots] of Object.entries(pathRoots)) {
+    if (isContainedBy(postPath, roots.posts) && isContainedBy(imagePath, roots.images)) return kind;
+  }
+  fail('--post and --image must be inside matching approved roots');
+};
+
+const assertRegularContainedFile = async (filePath, root, label) => {
+  const absoluteFile = path.resolve(repositoryRoot, filePath);
+  const absoluteRoot = path.resolve(repositoryRoot, root);
+  let metadata;
+  try {
+    metadata = await lstat(absoluteFile);
+  } catch {
+    fail(`${label} file does not exist: ${filePath}`);
+  }
+  if (!metadata.isFile() || metadata.isSymbolicLink()) fail(`${label} must be a regular non-symlink file: ${filePath}`);
+
+  const [canonicalFile, canonicalRoot] = await Promise.all([realpath(absoluteFile), realpath(absoluteRoot)]);
+  if (!isContainedBy(canonicalFile, canonicalRoot)) fail(`${label} resolves outside its approved root: ${filePath}`);
+  return absoluteFile;
+};
+
+const declaredImagePath = (kind, image) => path.normalize(path.join(pathRoots[kind].images, '..', '..', image));
 
 const countChineseCharacters = (body) => (body.match(chineseCharacter) ?? []).length;
 
-const allPostFiles = async (postPath) => {
+const allPostFiles = async (kind) => {
   const { glob } = await import('node:fs/promises');
   const files = [];
-  const directory = postPath.startsWith(`tests${path.sep}fixtures${path.sep}posts${path.sep}`)
-    ? path.join('tests', 'fixtures', 'posts')
-    : path.join('src', 'content', 'posts');
+  const directory = pathRoots[kind].posts;
   for await (const file of glob(path.join(directory, '**', '*.{md,mdx}'))) files.push(path.normalize(file));
   return files;
 };
@@ -63,13 +92,16 @@ const allPostFiles = async (postPath) => {
 export const validatePost = async ({ postPath: postInput, imagePath: imageInput }) => {
   const postPath = relativePath(postInput, '--post');
   const imagePath = relativePath(imageInput, '--image');
+  const kind = classifyPostPaths(postPath, imagePath);
 
   if (path.extname(postPath).toLowerCase() !== '.md') fail('--post must name a Markdown (.md) file');
   if (path.extname(imagePath).toLowerCase() !== '.png') fail('--image must name a PNG file');
 
+  const postFile = await assertRegularContainedFile(postPath, pathRoots[kind].posts, 'Post');
+  const imageFile = await assertRegularContainedFile(imagePath, pathRoots[kind].images, 'Image');
   let markdown;
   try {
-    markdown = await readFile(path.join(repositoryRoot, postPath), 'utf8');
+    markdown = await readFile(postFile, 'utf8');
   } catch {
     fail(`Post file does not exist: ${postPath}`);
   }
@@ -93,14 +125,14 @@ export const validatePost = async ({ postPath: postInput, imagePath: imageInput 
     fail(`Post body must contain 150–300 Chinese characters; found ${chineseCount}`);
   }
 
-  const expectedImagePath = declaredImagePath(postPath, frontmatter.image);
+  const expectedImagePath = declaredImagePath(kind, frontmatter.image);
   if (imagePath !== expectedImagePath) {
     fail(`--image must match frontmatter image: expected ${expectedImagePath}`);
   }
 
   let imageBuffer;
   try {
-    imageBuffer = await readFile(path.join(repositoryRoot, imagePath));
+    imageBuffer = await readFile(imageFile);
   } catch {
     fail(`Image file does not exist: ${imagePath}`);
   }
@@ -115,20 +147,20 @@ export const validatePost = async ({ postPath: postInput, imagePath: imageInput 
     fail(`Image must be a 1600×2000 PNG; found ${dimensions.width ?? '?'}×${dimensions.height ?? '?'} ${dimensions.type ?? 'unknown'}`);
   }
 
-  const siblings = await allPostFiles(postPath);
+  const siblings = await allPostFiles(kind);
   for (const siblingPath of siblings) {
     if (siblingPath === postPath) continue;
     const sibling = matter(await readFile(path.join(repositoryRoot, siblingPath), 'utf8'));
     if (sibling.data.slug === frontmatter.slug) fail(`Duplicate slug: ${frontmatter.slug} also exists in ${siblingPath}`);
   }
 
-  return { slug: frontmatter.slug, postPath, imagePath };
+  return { slug: frontmatter.slug, postPath, imagePath, kind };
 };
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   try {
-    const result = await validatePost(parseArgs(process.argv.slice(2)));
+    const { kind, ...result } = await validatePost(parseArgs(process.argv.slice(2)));
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
