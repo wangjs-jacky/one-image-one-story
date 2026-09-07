@@ -1,0 +1,4 @@
+interface:
+  display_name: "One Image, One Story"
+  short_description: "Turn a topic, text, or URL into one visual story"
+  default_prompt: "Use $one-image-one-story to turn this source into a pure visual image and a short Chinese story for the gallery."
