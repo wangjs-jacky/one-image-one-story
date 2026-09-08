@@ -15,6 +15,8 @@ header a { font-weight:700; text-decoration:none; }
 .post-detail img { display:block; width:100%; height:auto; }
 .post-card-copy { padding:16px 0 20px; }
 .post-card h2 { margin:.2em 0; font-size:1.35rem; line-height:1.25; }
+.post-card h2 a { text-decoration:none; transition:color .2s ease; }
+.post-card h2 a:hover, .post-card h2 a:focus-visible { color:var(--accent); }
 .post-card p { margin:.5em 0; }
 .tag-list { display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:16px 0 0; list-style:none; }
 .tag-list li { border:1px solid var(--line); border-radius:999px; padding:2px 9px; color:var(--muted); font-size:.8rem; }
@@ -22,6 +24,9 @@ header a { font-weight:700; text-decoration:none; }
 .post-detail-copy { align-self:start; }
 .post-detail h1 { margin:.15em 0 .7em; font-size:clamp(2.1rem,4vw,4rem); line-height:1.1; }
 .post-body > :first-child { margin-top:0; }
-button { padding:10px 14px; border:1px solid var(--ink); background:transparent; color:var(--ink); cursor:pointer; font:inherit; }
-button:hover { background:var(--accent); border-color:var(--accent); color:white; }
+[data-copy-link] { display:inline-flex; align-items:center; justify-content:center; min-height:44px; margin-top:20px; padding:9px 16px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.32); color:var(--ink); cursor:pointer; font:inherit; font-size:.9rem; font-weight:600; transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s ease; }
+[data-copy-link][data-copy-state="idle"]:hover { background:var(--accent); border-color:var(--accent); color:white; transform:translateY(-1px); }
+[data-copy-link]:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+[data-copy-link][data-copy-state="success"] { border-color:#66826a; background:#e3ece0; color:#31533a; }
+[data-copy-link][data-copy-state="error"] { border-color:var(--accent); background:rgba(230,80,46,.1); color:#9f301d; }
 @media (max-width:720px) { .masonry{columns:1}.post-detail{grid-template-columns:1fr;gap:24px} }
