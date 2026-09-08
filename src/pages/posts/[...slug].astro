@@ -16,6 +16,7 @@ const { Content } = await render(post);
 const { title, summary, image, imageAlt, publishedAt, tags, sourceUrl } = post.data;
 const publishedDate = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'long',
+  timeZone: 'Asia/Shanghai',
 }).format(new Date(publishedAt));
 const imageUrl = withBasePath(image);
 ---
