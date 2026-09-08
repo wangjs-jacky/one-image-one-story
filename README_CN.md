@@ -4,7 +4,7 @@
 
 以一张纯配图和一篇独立短文表达一个观点。站点基于 Astro、Markdown 和 PNG，每次推送到 `main` 后通过 GitHub Actions 部署到 GitHub Pages，提供响应式画廊、作品永久链接、来源说明、复制链接和分享元数据。
 
-空内容集合也能正常构建和展示首页。目前提供站点与发布基础；可复用生成 Skill 和首发作品按后续计划交付。
+空内容集合也能正常构建和展示首页。可复用的 one-image-one-story Skill 与两篇首发作品现已上线。
 
 ## 本地运行与检查
 
@@ -23,13 +23,21 @@ npm run check && npm run build && npm test -- --run
 
 `check` 将测试内容隔离构建到 `.fixture-build/dist`，运行 Astro 类型检查及测试；`build` 将生产内容构建到 `dist/`。测试样例不会进入生产站点。本地验证项目子路径时可设置 `SITE_URL` 和 `BASE_PATH`；Pages 工作流会根据仓库自动设置。
 
-## 三种输入模式
+## Skill 使用与三种输入模式
+
+从仓库本地安装 Skill：
+
+```bash
+bash skill/one-image-one-story/scripts/install.sh
+```
+
+安装后可输入主题、粘贴的文章正文或网页 URL。Skill 会提炼一个有依据的观点，生成 150–300 字中文短文和独立的 1600×2000 PNG 纯配图；URL 无法读取时会停止，不编造摘要。获得批准后会发布 Markdown/PNG 文件并等待 GitHub Pages 部署，否则只生成待审核文件。
 
 - 主题：从一句主题提炼一个核心观点。
 - 文章文本：提炼可独立阅读的观点，不逐段改写原文。
 - 网页 URL：先读取并核实正文，保留来源链接；读取失败、正文为空或缺乏证据时停止。
 
-生成流程的目标产物是一篇正文含 150–300 个汉字的短文和一张 1600×2000 PNG 纯配图。文字独立于图片；图片不包含标题、正文、Logo、水印或乱码。具体生成与安装步骤见下方 Skill 计划。
+生成流程的目标产物是一篇正文含 150–300 个汉字的短文和一张 1600×2000 PNG 纯配图。文字独立于图片；图片不包含标题、正文、Logo、水印或乱码。
 
 ## 文件与数据契约
 
@@ -72,7 +80,7 @@ npm run publish:post -- --post src/content/posts/example-story.md --image public
 gh api repos/{owner}/{repo}/pages --jq .html_url
 ```
 
-线上首页：[wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/)。作品地址为 `<首页网址>posts/<slug>/`。
+线上首页：[wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/)。已发布作品：[Figwright：免费 Figma MCP](https://wangjs-jacky.github.io/one-image-one-story/posts/figwright-free-figma-mcp/)、[一图一文推荐](https://wangjs-jacky.github.io/one-image-one-story/posts/one-image-one-story-recommendation/)。
 
 如果本地提交成功但推送失败，保留脚本报告的 SHA，对照当前远端 `main` 检查提交历史，单独处理权限或历史同步。不要重复生成文章、在存在未推送提交时重跑内容发布，也不要强制推送。确认全部待推送历史符合预期后，才通过 `git push origin COMMIT_SHA:main` 推送已审核的固定提交。将下方 `COMMIT_SHA` 替换为实际值查询部署：
 

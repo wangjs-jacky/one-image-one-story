@@ -51,6 +51,19 @@ describe('one-image-one-story skill', () => {
     expect((await lstat(target)).ino).toBe(before.ino);
   });
 
+  it('falls back to HOME/.codex/skills when CODEX_HOME is unset', async () => {
+    const home = await mkdtemp(path.join(tmpdir(), 'one-image-one-story-home-'));
+    temporaryRoots.push(home);
+    const { CODEX_HOME: _codexHome, ...environment } = process.env;
+    const result = spawnSync('bash', [installerPath], {
+      cwd: tmpdir(), encoding: 'utf8', env: { ...environment, HOME: home },
+    });
+    const target = path.join(home, '.codex', 'skills', 'one-image-one-story');
+    expect(result.status).toBe(0);
+    expect((await lstat(target)).isSymbolicLink()).toBe(true);
+    expect(await readlink(target)).toBe(await realpath(skillPath));
+  });
+
   it('replaces a stale symlink without changing its former target', async () => {
     const { root, target, run } = await installation();
     const previous = path.join(root, 'previous');

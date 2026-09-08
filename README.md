@@ -4,7 +4,7 @@
 
 An Astro gallery for one pure visual image and one independent short story. Markdown and PNG files are the publication source; GitHub Actions builds permanent, shareable pages on every push to `main`.
 
-The responsive gallery includes individual story pages, source attribution, copy-link controls, and Open Graph and Twitter Card metadata. An empty content collection is a supported starting state. The reusable generation Skill and initial stories are described in the implementation plan and will follow the site foundation.
+The responsive gallery includes individual story pages, source attribution, copy-link controls, and Open Graph and Twitter Card metadata. The reusable one-image-one-story Skill and two initial stories are live.
 
 ## Development
 
@@ -23,9 +23,15 @@ npm run check && npm run build && npm test -- --run
 
 `check` builds isolated fixtures in `.fixture-build/dist`, runs Astro diagnostics, and runs the test suite. `build` produces the production site in `dist/`. Test fixtures never become production posts. Set `SITE_URL` and `BASE_PATH` when checking a deployment path locally; the Pages workflow sets both from the repository identity.
 
-## Content and publication
+## Skill usage and publication
 
-The planned generation workflow accepts a topic, pasted article text, or a source URL. It distills one supported claim into 150–300 Chinese characters and creates a separate 1600×2000 PNG, without embedded text, logos, or watermarks. An unreadable URL must stop the workflow instead of producing an invented summary.
+Install the Skill locally from the repository:
+
+```bash
+bash skill/one-image-one-story/scripts/install.sh
+```
+
+Use it with a topic, pasted article text, or a source URL. It distills one supported claim into 150–300 Chinese characters and creates a separate 1600×2000 PNG, without embedded text, logos, or watermarks. An unreadable URL stops the workflow instead of producing an invented summary. With approval, the Skill publishes the Markdown/PNG pair and waits for GitHub Pages deployment; otherwise it leaves the files ready for review.
 
 Create a pair at `src/content/posts/<slug>.md` and `public/images/posts/<slug>.png`. The Markdown frontmatter contract is:
 
@@ -64,7 +70,7 @@ The workflow file is [deploy-pages.yml](.github/workflows/deploy-pages.yml). Pag
 gh api repos/{owner}/{repo}/pages --jq .html_url
 ```
 
-Live site: [wangjs-jacky.github.io/one-image-one-story](https://wangjs-jacky.github.io/one-image-one-story/). Story routes are `<site URL>posts/<slug>/`.
+Live site: [homepage](https://wangjs-jacky.github.io/one-image-one-story/). Published stories: [Figwright: Free Figma MCP](https://wangjs-jacky.github.io/one-image-one-story/posts/figwright-free-figma-mcp/) and [One Image, One Story recommendation](https://wangjs-jacky.github.io/one-image-one-story/posts/one-image-one-story-recommendation/).
 
 If a push fails after a commit, retain the SHA reported by the publisher and inspect it together with the current remote `main`. Resolve access problems or reconcile history as a separate recovery operation; do not regenerate the story, rerun content publication over outgoing commits, or force push. Only after reviewing the outgoing history should you push the intended SHA with `git push origin COMMIT_SHA:main`. Find its deployment by replacing `COMMIT_SHA` below with that value:
 
